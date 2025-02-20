@@ -1,42 +1,63 @@
+from fpdf import FPDF
 import streamlit as st
 import pandas as pd
-import os
 from io import BytesIO
+import datetime
 
-st.set_page_config(page_title="PIAIC", layout="wide")
+st.title("Ramadan 2025 Timing Calendar Collector")
 
-st.title("PIAIC - Presidential Initiative for Artificial Intelligence and Computing")
+# User inputs the starting date of Ramadan
+start_date = st.date_input("Enter the starting date of Ramadan (e.g., 2025-03-10):", datetime.date(2025, 3, 10))
 
-st.write("Welcome to the PIAIC Information Hub. This is a simple app built with Streamlit to provide details about PIAIC and its programs.")
+# Collect Suhoor and Iftar times for 30 days
+timings = []
+for i in range(1, 31):
+    suhoor = st.time_input(f"Suhoor Time (Day {i})", value=datetime.time(5, 0))
+    iftar = st.time_input(f"Iftar Time (Day {i})", value=datetime.time(18, 0))
+    timings.append({
+        "Day": i,
+        "Date": (start_date + datetime.timedelta(days=i - 1)).strftime("%Y-%m-%d"),
+        "Suhoor": suhoor.strftime("%H:%M"),
+        "Iftar": iftar.strftime("%H:%M")
+    })
 
-st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["Home", "Programs", "Admissions", "Contact"])
+# Display collected timings as a DataFrame
+st.write("### Collected Ramadan 2025 Timings")
+df = pd.DataFrame(timings)
+st.dataframe(df)
 
-if page == "Home":
-    st.header("Home Page")
-    st.write("Welcome to the Home Page of PIAIC. The Presidential Initiative for Artificial Intelligence and Computing is an educational program aiming to develop a skilled workforce in emerging technologies like Artificial Intelligence, Cloud Computing, Blockchain, and the Internet of Things (IoT).")
+# Generate PDF if the button is clicked
+if st.button("Generate PDF"):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt="Ramadan 2025 Timing Calendar", ln=True, align='C')
+    pdf.ln(10)
 
-elif page == "Programs":
-    st.header("Our Programs")
-    st.write("PIAIC offers the following specialized programs:")
-    st.markdown("- Artificial Intelligence (AI)")
-    st.markdown("- Cloud Native Computing")
-    st.markdown("- Blockchain")
-    st.markdown("- Internet of Things (IoT)")
+    # Add table headers
+    pdf.cell(20, 10, "Day", 1)
+    pdf.cell(40, 10, "Date", 1)
+    pdf.cell(40, 10, "Suhoor", 1)
+    pdf.cell(40, 10, "Iftar", 1)
+    pdf.ln()
 
-elif page == "Admissions":
-    st.header("Admissions")
-    st.write("Admissions are open throughout the year. You can apply online through the official PIAIC website.")
-    st.write("Visit [PIAIC Admissions](https://www.piaic.org/) for more details.")
-    uploaded_files = st.file_uploader("Upload your form in PDF:", type=("pdf",), accept_multiple_files=True)
-    if uploaded_files:
-        for uploaded_file in uploaded_files:
-            st.write(f"Uploaded file: {uploaded_file.name}")
+    # Add table data
+    for timing in timings:
+        pdf.cell(20, 10, str(timing["Day"]), 1)
+        pdf.cell(40, 10, timing["Date"], 1)
+        pdf.cell(40, 10, timing["Suhoor"], 1)
+        pdf.cell(40, 10, timing["Iftar"], 1)
+        pdf.ln()
 
-elif page == "Contact":
-    st.header("Contact Us")
-    st.write("For more information, reach out to us at: info@piaic.org")
-    st.write("Follow us on social media:")
-    st.write("- Twitter: @piaicofficial")
-    st.write("- Facebook: PIAIC")
-    st.write("- LinkedIn: PIAIC")
+    # Save PDF to a BytesIO object
+    pdf_buffer = BytesIO()
+    pdf.output(pdf_buffer)
+    pdf_buffer.seek(0)
+
+    # Download button for the PDF
+    st.download_button(
+        label="Download Ramadan 2025 Calendar PDF",
+        data=pdf_buffer,
+        file_name="ramadan_2025_calendar.pdf",
+        mime="application/pdf"
+    )
